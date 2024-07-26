@@ -5,6 +5,8 @@ import shutil
 import pandas as pd
 from tqdm import tqdm
 from colorama import Fore, Style, init
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 
 def dynamic_print(text, delay=0.02):
@@ -134,6 +136,23 @@ def upload_files():
     """
     Upload files based on user input.
     """
+    combined_data = []
+    upload_prompt(combined_data)
+       
+    print("Great! Your file is being prepared...")
+    for _ in tqdm(range(100), desc="Preparing file", ncols=75, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+        time.sleep(0.03)  # Simulate work being done
+      
+    if combined_data:
+        combined_df = pd.concat(combined_data, ignore_index=True)
+        combined_df.index.name = 'ID'
+        #combined_df.to_csv('combined_bank_statements.csv', index=False)
+        print("Successful!")
+        
+    display_menu(combined_df)
+
+
+def upload_prompt(combined_data):
     upload_prompt = """
 ===================================================================
   Let's start by uploading all your bank statements.             
@@ -141,11 +160,13 @@ def upload_files():
   ⚠️ Bank statements should be .csv files.
   
   Please upload one file at a time. When finish, enter 'done'.
+  
+  For each file, you will be asked several questions to ensure accurate preprocessing of the data.
+  On average, it will take approximately 50 seconds per file to complete this process.
 
 """
     dynamic_print(upload_prompt, 0.02)
     
-    combined_data = []
     file_paths = []
     
     while True:
@@ -155,14 +176,7 @@ def upload_files():
         print()
 
         if file_path.lower() == 'done':
-            dynamic_print(Fore.GREEN + "Do you want to finish uploading and "
-                            "start analysis?\nYou won't be able to upload "
-                            "additional bank statements later: (y/n)" + Style.RESET_ALL)
-            is_done = input().strip().upper()
-            if is_done == 'Y':
-                break
-            else:
-                continue
+            break
         
         account_name = input("Enter a nickname for this account (optional): _").strip().capitalize()
         print()
@@ -190,19 +204,28 @@ def upload_files():
             file_name = os.path.basename(path)
             dynamic_print(f"{i + 1}. {file_name}")
         print()
-       
-    print("Great! Your file is being prepared...")
-    for _ in tqdm(range(100), desc="Preparing file", ncols=75, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
-        time.sleep(0.03)  # Simulate work being done
-      
-    if combined_data:
-        combined_df = pd.concat(combined_data, ignore_index=True)
-        combined_df.index.name = 'ID'
-        #combined_df.to_csv('combined_bank_statements.csv', index=False)
-        print("Successful!")
+        undo_redo(file_paths, combined_data)
         
-    display_menu(combined_df)
-
+    
+def undo_redo(file_paths, combined_data):
+    while True:
+        choice = input("Press 'R' to redo this file, 'U' to undo the last file, or 'N' to continue: ").strip().upper()
+        if choice == 'R':
+            print("Redoing file upload...")
+                    # The user will re-enter the information for this file
+            file_paths.pop()  # Remove the last file path
+            combined_data.pop()  # Remove the last DataFrame
+            break  # Break out to start again with the redo
+        elif choice == 'U':
+            print("Undoing the last file upload...")
+                    # Remove the last file and DataFrame
+            file_paths.pop()
+            combined_data.pop()
+            break  # Break out to start again with the undo
+        elif choice == 'N':
+            break  # Continue to next file
+        else:
+            print("Invalid input. Please enter 'R' to redo, 'U' to undo, or 'N' to continue.")
 
 def preprocess_bank_statement(file_path, account_name, account_type, date_col, desc_col, amount_col, category_col, is_negative_spending):
     try:
@@ -398,6 +421,67 @@ def display_expense(df):
 
 
 def generate_report(df):
+    """
+    Generates a report from the combined transactions DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the combined bank statements.
+
+    Returns:
+        None
+    """
+    # Ensure the Amount column is numeric
+    df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce')
+    
+    # Total expenses (assuming expenses are negative values)
+    total_expenses = df[df['Amount'] < 0]['Amount'].sum()
+    
+    # Expenses by category
+    expenses_by_category = df[df['Amount'] < 0].groupby('Category')['Amount'].sum()
+    
+    # Prepare report content
+    report_content = [
+        "Bank Statement Analysis Report",
+        "==============================",
+        f"Total Expenses: ${-total_expenses:.2f}",  # Display expenses as positive values
+        "",
+        "Expenses by Category:",
+        "----------------------",
+    ]
+    
+    for category, amount in expenses_by_category.items():
+        report_content.append(f"{category}: ${-amount:.2f}")  # Display expenses as positive values
+
+    # Create PDF
+    c = canvas.Canvas("AnalysisReport", pagesize=letter)
+    width, height = letter
+    
+    # Title
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(30, height - 50, "Bank Statement Analysis Report")
+    c.setFont("Helvetica", 12)
+    c.drawString(30, height - 70, "==============================")
+    
+    # Total Expenses
+    c.drawString(30, height - 90, f"Total Expenses: ${-total_expenses:.2f}")  # Display expenses as positive values
+    
+    # Expenses by Category
+    c.drawString(30, height - 130, "Expenses by Category:")
+    c.drawString(30, height - 150, "----------------------")
+    
+    y = height - 170
+    for category, amount in expenses_by_category.items():
+        c.drawString(30, y, f"{category}: ${-amount:.2f}")  # Display expenses as positive values
+        y -= 20
+    
+    # Save PDF
+    c.save()
+
+# Example usage:
+# Assuming transactions_df is your DataFrame containing the combined bank statements
+# transactions_df = pd.DataFrame(...)  # Load or create your DataFrame here
+# generate_report(transactions_df, 'bank_statement_report.txt')
+
     pass
 
 
