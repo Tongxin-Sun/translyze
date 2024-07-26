@@ -140,7 +140,7 @@ def upload_files():
 
   ⚠️ Bank statements should be .csv files.
   
-  Please update one file at a time. When finish, enter 'done'.
+  Please upload one file at a time. When finish, enter 'done'.
 
 """
     dynamic_print(upload_prompt, 0.02)
@@ -197,10 +197,11 @@ def upload_files():
       
     if combined_data:
         combined_df = pd.concat(combined_data, ignore_index=True)
-        combined_df.to_csv('combined_bank_statements.csv', index=False)
-        print("Successful! Combined data saved to combined_bank_statements.csv.")
+        combined_df.index.name = 'ID'
+        #combined_df.to_csv('combined_bank_statements.csv', index=False)
+        print("Successful!")
         
-    display_menu()
+    display_menu(combined_df)
 
 
 def preprocess_bank_statement(file_path, account_name, account_type, date_col, desc_col, amount_col, category_col, is_negative_spending):
@@ -230,7 +231,7 @@ def preprocess_bank_statement(file_path, account_name, account_type, date_col, d
         return pd.DataFrame()
     
 
-def display_menu():
+def display_menu(df):
     menu = """
 ========================================================
   Your bank statements are now ready for analysis!    
@@ -242,34 +243,161 @@ def display_menu():
   3. Generate Analysis Report (PDF)                   
                                                       
                                                       
-  [Press X to Exit the Program at Any Time]           
+  [Press Ctrl + C to Exit the Program at Any Time]           
 ========================================================
     """
     dynamic_print(menu)
     
-    handle_menu_choice()
+    handle_menu_choice(df)
     
     
-def handle_menu_choice():
+def handle_menu_choice(df):
     choice = input("Enter your choice: ")
     
     if choice == '1':
-        display_transactions()
+        display_transactions(df)
     elif choice == '2':
-        display_expense()
+        display_expense(df)
     elif choice == '3':
-        generate_report()
+        generate_report(df)
         
         
-def display_transactions():
-    pass
+def display_transactions(df):
+    print("=========================================================================")
+    print(df)
+    print("""
+          
+          
+  [Press D to Delete a Transaction]                                    
+  [Press B to Go Back to Main Menu]                                    
+  [Press Ctrl + C to Exit the Program at any time]                            
+                                                                       
+=========================================================================    
+          """)
+    while True:
+        choice = input().upper()
+        if choice == 'D':
+            delete_a_transaction(df)
+            break
+        elif choice == 'B':
+            display_menu(df)
+            break
+        else:
+            print("Invalid input. Please enter 'D' to Delete a Transaction or 'B' to Go Back to Main Menu.")
 
 
-def display_expense():
-    pass
+def delete_a_transaction(df):
+    try:
+        transaction_id = int(input("Enter the ID of the transaction you want to delete: "))
+        
+        # Check if the transaction ID exists in the DataFrame
+        if transaction_id not in df.index:
+            print(f"Transaction ID {transaction_id} does not exist.")
+            return
+
+        # Extract the transaction details
+        transaction = df.loc[transaction_id]
+        
+        # Display transaction details and confirm deletion
+        print(f"\n⚠️ Are you sure you want to delete the following transaction?\n"
+              f"   ID: {transaction_id}\n"
+              f"   Date: {transaction['Date']}\n"
+              f"   Description: {transaction['Description']}\n"
+              f"   Amount: ${transaction['Amount']}\n"
+              f"   Category: {transaction['Category']}\n")
+        
+        confirm = input("[Press Y to Confirm Deletion] [Press N to Cancel]: ").upper()
+        
+        if confirm == 'Y':
+            # Drop the transaction from the DataFrame
+            df = df.drop(transaction_id)
+            dynamic_print(f"\nTransaction ID {transaction_id} deleted successfully!!\n")
+        else:
+            dynamic_print("\nDeletion cancelled.\n")
+            
+        display_transactions(df)
+    
+    except ValueError:
+        print("Invalid input. Please enter a valid transaction ID.")
 
 
-def generate_report():
+def display_expense(df):
+    total_expense = df[df['Amount'] < 0]['Amount'].sum()
+    total_expense_str = f"${abs(total_expense):.2f}"
+    
+    def display_expense_summary():
+        summary = f"""
+=========================================================================
+  View Overall Expense                                                 
+                                                                       
+  Here is the summary of your overall expenses:                        
+                                                                       
+  -------------------------------------------------                    
+  | Total Expense                                  |                   
+  |------------------------------------------------|                   
+  | {total_expense_str}                            |                   
+  --------------------------------------------------                   
+                                                                       
+  [+] Detailed Expense by Category:                                    
+  (Press D to show/hide details)                                       
+                                                                       
+                                                                       
+  [Press B to Go Back to Main Menu]                                    
+  [Press Ctrl + C to Exit the Program at any time]                            
+=========================================================================
+        """
+        print(summary)
+    
+    def display_detailed_expense():
+        print(f"""
+=========================================================================
+  View Overall Expense                                                 
+                                                                       
+  Here is the summary of your overall expenses:                        
+  [Press D to show a detailed list of expenses by category]            
+                                                                       
+  --------------------------------------------------                   
+  | Total Expense                                  |                   
+  |------------------------------------------------|                   
+  | {total_expense_str}                            |                   
+  --------------------------------------------------                   
+                                                                       
+  [-] Detailed Expense by Category:                                    
+  (Press D to show/hide details)                                       
+                                                                       
+  ----------------------------------------------------                 
+  | Category                    | Amount             |                 
+  |-----------------------------|--------------------|                        
+              """)
+        grouped = df[df['Amount'] < 0].groupby('Category')['Amount'].sum().abs().reset_index()
+        for _, row in grouped.iterrows():
+            print(f"  | {row['Category']:<30} | ${row['Amount']:<9.2f}  |")
+        print("|  --------------------------------------------------------------------|")
+        print("""                                                                       
+  [Press B to Go Back to Main Menu]                                    
+  [Press Ctrl + C to Exit the Program at any time]                            
+========================================================================= """)
+    
+    display_expense_summary()
+    detailed_view = False
+    
+    while True:
+        choice = input().upper()
+        if choice == 'D':
+            detailed_view = not detailed_view
+            if detailed_view:
+                display_detailed_expense()
+            else:
+                display_expense_summary()
+            
+        elif choice == 'B':
+            display_menu(df)
+            break
+        else:
+            print("Invalid input. Please press D, B, or X.")
+
+
+def generate_report(df):
     pass
 
 
