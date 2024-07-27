@@ -241,7 +241,7 @@ def preprocess_bank_statement(file_path, account_name, account_type, date_col, d
         })
         
         if is_negative_spending == 'n':
-            df['Amount'] = pd['Amount'] * -1
+            df['Amount'] = df['Amount'] * -1
         
         df['Account Name'] = account_name
         df['Account Type'] = account_type
@@ -453,7 +453,7 @@ def generate_report(df):
         report_content.append(f"{category}: ${-amount:.2f}")  # Display expenses as positive values
 
     # Create PDF
-    c = canvas.Canvas("AnalysisReport", pagesize=letter)
+    c = canvas.Canvas("report.pdf", pagesize=letter)
     width, height = letter
     
     # Title
@@ -476,6 +476,8 @@ def generate_report(df):
     
     # Save PDF
     c.save()
+    dynamic_print("Report is saved to report.pdf")
+    display_menu(df)
 
 # Example usage:
 # Assuming transactions_df is your DataFrame containing the combined bank statements
