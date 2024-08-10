@@ -346,6 +346,7 @@ def write_request_to_file(request, file_path):
 
 def read_response_from_file(file_path):
     """Reads the response dictionary from a file."""
+    time.sleep(2)
     with open(file_path, 'r') as file:
         return json.load(file)
 
@@ -422,7 +423,7 @@ def consolidate_category(df):
     category_list = input(
         "Please enter the categories you want to merge, separated by commas"
         " (e.g., 'Shopping, Entertainment'): "
-        ).split(',')
+        )
     new_category = input("Enter the name for the new combined category: "
                          ).strip()
     request = {
