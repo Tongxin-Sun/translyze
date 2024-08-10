@@ -291,21 +291,26 @@ def display_transactions(df):
     print("=========================================================================")
     print(df)
     print("""
-          
-  [Press E to Edit a Transaction]        
-  [Press D to Delete a Transaction]                                    
-  [Press B to Go Back to Main Menu]                                    
-  [Press Ctrl + C to Exit the Program at any time]                            
-                                                                       
+
+   1. Edit Transaction
+   2. Delete Transaction
+   3. Consolidate Category
+
+  [Press B to Go Back to Main Menu]              
+  [Press Ctrl + C to Exit the Program at any time]
+                                    
 =========================================================================    
           """)
     while True:
         choice = input().upper()
-        if choice == 'E':
+        if choice == '1':
             edit_a_transaction(df)
             break
-        elif choice == 'D':
+        elif choice == '2':
             delete_a_transaction(df)
+            break
+        elif choice == '3':
+            consolidate_category(df)
             break
         elif choice == 'B':
             display_menu(df)
@@ -413,6 +418,8 @@ def delete_a_transaction(df):
         print("Invalid input. Please enter a valid transaction ID.")
 
 
+def consolidate_category(df):
+    
 def request_to_microserviceA(m):
     
     with open('./transaction-calculator/commpipe.txt', 'w') as request_file:
