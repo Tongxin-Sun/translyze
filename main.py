@@ -1,4 +1,5 @@
 import sys
+import json
 import os
 import time
 import shutil
@@ -176,6 +177,7 @@ def upload_prompt(combined_data):
         print()
 
         if file_path.lower() == 'done':
+            print(df)
             break
         
         account_name = input("Enter a nickname for this account (optional): _").strip().capitalize()
@@ -269,7 +271,7 @@ def display_menu(df):
   [Press Ctrl + C to Exit the Program at Any Time]           
 ========================================================
     """
-    dynamic_print(menu)
+    print(menu)
     
     handle_menu_choice(df)
     
@@ -290,7 +292,7 @@ def display_transactions(df):
     print(df)
     print("""
           
-          
+  [Press E to Edit a Transaction]        
   [Press D to Delete a Transaction]                                    
   [Press B to Go Back to Main Menu]                                    
   [Press Ctrl + C to Exit the Program at any time]                            
@@ -299,7 +301,10 @@ def display_transactions(df):
           """)
     while True:
         choice = input().upper()
-        if choice == 'D':
+        if choice == 'E':
+            edit_a_transaction(df)
+            break
+        elif choice == 'D':
             delete_a_transaction(df)
             break
         elif choice == 'B':
@@ -307,6 +312,70 @@ def display_transactions(df):
             break
         else:
             print("Invalid input. Please enter 'D' to Delete a Transaction or 'B' to Go Back to Main Menu.")
+
+
+def get_user_input():
+    """Prompts the user for input and returns it."""
+    ID = input('Enter the transaction ID: ')
+    col = input('Which field would you like to edit? (Account Name, Account Type, Date, Description, Amount, Category): ').strip().capitalize()
+    new_value = input(f'Enter the new value for {col}: ')
+    return ID, col, new_value
+
+
+def create_request(ID, col, new_value, df):
+    """Creates a request dictionary."""
+    return {
+        'Type': 'Request',
+        'ID': ID,
+        'Col': col,
+        'New Value': new_value,
+        'Data': df.to_dict()
+    }
+
+
+def write_request_to_file(request, file_path):
+    """Writes the request dictionary to a file."""
+    with open(file_path, 'w') as file:
+        json.dump(request, file)
+
+
+def read_response_from_file(file_path):
+    """Reads the response dictionary from a file."""
+    with open(file_path, 'r') as file:
+        return json.load(file)
+
+
+def process_response(df, file_path):
+    """Processes the response and updates the DataFrame."""
+    while True:
+        try:
+            response = read_response_from_file(file_path)
+            if response['Type'] == 'Response':
+                df = pd.DataFrame(response['Data'])
+                print('Data has been successfully edited!\n')
+                return df
+        except json.decoder.JSONDecodeError:
+            continue
+
+
+def convert_value(col, value):
+    """Converts the value to the appropriate type based on the column."""
+    if col in ['Amount']:
+        try:
+            return float(value)
+        except ValueError:
+            print(f"Warning: Unable to convert '{value}' to float. Using original value.")
+            return value
+    return value
+
+
+def edit_a_transaction(df):
+    ID, col, new_value = get_user_input()
+    new_value = convert_value(col, new_value)
+    request = create_request(ID, col, new_value, df)
+    write_request_to_file(request, './transaction-editor/communication.txt')
+    df = process_response(df, './transaction-editor/communication.txt')
+    display_transactions(df)
 
 
 def delete_a_transaction(df):
@@ -344,9 +413,25 @@ def delete_a_transaction(df):
         print("Invalid input. Please enter a valid transaction ID.")
 
 
+def request_to_microserviceA(m):
+    
+    with open('./transaction-calculator/commpipe.txt', 'w') as request_file:
+        request_file.write(str(m))
+    time.sleep(2)
+    with open('./transaction-calculator/commpipe.txt', 'r') as response_file:
+        amount = response_file.readline()
+    return amount
+            
+
 def display_expense(df):
     total_expense = df[df['Amount'] < 0]['Amount'].sum()
     total_expense_str = f"${abs(total_expense):.2f}"
+    df.to_csv('./transaction-calculator/dataframe.txt', index=False)
+    highest_expense = request_to_microserviceA(1)
+    time.sleep(10)
+    lowest_expense = request_to_microserviceA(2)
+    time.sleep(2)
+    average_expense = request_to_microserviceA(3)
     
     def display_expense_summary():
         summary = f"""
@@ -358,7 +443,19 @@ def display_expense(df):
   -------------------------------------------------                    
   | Total Expense                                  |                   
   |------------------------------------------------|                   
-  | {total_expense_str}                            |                   
+  | {total_expense_str}                            |
+  |------------------------------------------------|
+  | Highest Expense                                |
+  |------------------------------------------------|
+  | {highest_expense}                              |
+  |------------------------------------------------|
+  | Lowest Expense                                 |
+  |------------------------------------------------|
+  | {lowest_expense}                               |
+  |------------------------------------------------|
+  | Average Expense                                |
+  |------------------------------------------------|
+  | {average_expense}                              |                   
   --------------------------------------------------                   
                                                                        
   [+] Detailed Expense by Category:                                    
