@@ -419,7 +419,23 @@ def delete_a_transaction(df):
 
 
 def consolidate_category(df):
-    
+    category_list = input(
+        "Please enter the categories you want to merge, separated by commas"
+        " (e.g., 'Shopping, Entertainment'): "
+        ).split(',')
+    new_category = input("Enter the name for the new combined category: "
+                         ).strip()
+    request = {
+        'Type': 'Request',
+        'Category List': category_list,
+        'New Category': new_category,
+        'Data': df.to_dict()
+        }
+    write_request_to_file(request, '../category-consolidator/communication.txt')
+    df = process_response(df, "../category-consolidator/communication.txt")
+    display_transactions(df)
+
+
 def request_to_microserviceA(m):
     
     with open('./transaction-calculator/commpipe.txt', 'w') as request_file:
