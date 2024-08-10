@@ -373,8 +373,8 @@ def edit_a_transaction(df):
     ID, col, new_value = get_user_input()
     new_value = convert_value(col, new_value)
     request = create_request(ID, col, new_value, df)
-    write_request_to_file(request, './transaction-editor/communication.txt')
-    df = process_response(df, './transaction-editor/communication.txt')
+    write_request_to_file(request, '../transaction-editor/communication.txt')
+    df = process_response(df, '../transaction-editor/communication.txt')
     display_transactions(df)
 
 
