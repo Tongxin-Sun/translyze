@@ -264,8 +264,9 @@ def display_menu(df):
                     MAIN MENU           
                                                       
   1. View Transactions                                
-  2. View Expense Summary                             
-  3. Generate Analysis Report (PDF)                   
+  2. View Expense Summary
+  3. View Income Summary                             
+  4. Generate Analysis Report (PDF)                   
                                                       
                                                       
   [Press Ctrl + C to Exit the Program at Any Time]           
@@ -284,6 +285,8 @@ def handle_menu_choice(df):
     elif choice == '2':
         display_expense(df)
     elif choice == '3':
+        display_income(df)
+    elif choice == '4':
         generate_report(df)
         
         
