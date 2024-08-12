@@ -279,7 +279,7 @@ def display_menu(df):
     
 def handle_menu_choice(df):
     choice = input("Enter your choice: ")
-    
+
     if choice == '1':
         display_transactions(df)
     elif choice == '2':
@@ -288,8 +288,43 @@ def handle_menu_choice(df):
         display_income(df)
     elif choice == '4':
         generate_report(df)
-        
-        
+
+
+def display_income(df):
+    print("Sending request to microservice D: income-viewer ...")
+    time.sleep(2)
+    write_request_to_file(df.to_dict(), '../income-viewer/communication.txt')
+    print("Receiving response from the microservice D: income-viewer...")
+    time.sleep(2)
+    with open('../income-viewer/communication.txt', 'r') as file:
+        income = file.read()
+    summary = f"""
+=========================================================================
+  View Overall Income
+
+  Here is the summary of your overall income:
+
+  -------------------------------------------------
+  | Total Income                                   |
+  |------------------------------------------------|
+  | {income}                                       |
+  --------------------------------------------------
+
+  [Press B to Go Back to Main Menu]
+  [Press Ctrl + C to Exit the Program at any time]
+=========================================================================
+        """
+    print(summary)
+    while True:
+        choice = input().upper()
+        if choice == 'B':
+            display_menu(df)
+            break
+
+        else:
+            print("Invalid input. Please Enter again.")
+
+
 def display_transactions(df):
     print("=========================================================================")
     print(df)
