@@ -51,7 +51,7 @@ def welcome():
   [Press Ctrl + C to exit the program at any time.]
 ===================================================================
 """
-    dynamic_print(welcome_message, 0.02)
+    print(welcome_message)
 
 
 def display_user_guide():
@@ -82,9 +82,8 @@ def display_user_guide():
   [Press Ctrl + C to Exit the Program at Any Time]
   ===================================================================
     """
-    dynamic_print(user_guide, 0.02)
+    print(user_guide)
     handle_user_choice()
-        
 
 
 def handle_user_choice():
@@ -143,7 +142,6 @@ def upload_files():
     print("Great! Your file is being prepared...")
     for _ in tqdm(range(100), desc="Preparing file", ncols=75, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
         time.sleep(0.03)  # Simulate work being done
-      
     if combined_data:
         combined_df = pd.concat(combined_data, ignore_index=True)
         combined_df.index.name = 'ID'
@@ -159,25 +157,25 @@ def upload_prompt(combined_data):
   Let's start by uploading all your bank statements.             
 
   ⚠️ Bank statements should be .csv files.
-  
+
   Please upload one file at a time. When finish, enter 'done'.
-  
-  For each file, you will be asked several questions to ensure accurate preprocessing of the data.
-  On average, it will take approximately 50 seconds per file to complete this process.
+
+  For each file, you will be asked several questions to ensure
+  accurate preprocessing of the data. On average, it will take
+  approximately 50 seconds per file to complete this process.
 
 """
-    dynamic_print(upload_prompt, 0.02)
+    print(upload_prompt)
     
     file_paths = []
     
     while True:
-        dynamic_print("===================================================================")
+        print("===================================================================")
         file_path = input("Enter the path of the CSV file (or 'done' to finish): _")
         file_paths.append(file_path)
         print()
 
         if file_path.lower() == 'done':
-            print(df)
             break
         
         account_name = input("Enter a nickname for this account (optional): _").strip().capitalize()
@@ -196,15 +194,15 @@ def upload_prompt(combined_data):
         print()
         
         df = preprocess_bank_statement(file_path, account_name, account_type, date_col, desc_col, amount_col, category_col, is_negative_spending)
-        
+
         if not df.empty:
             combined_data.append(df)
-         
-        print()   
-        dynamic_print("Uploaded bank statements: ")
+
+        print()
+        print("Uploaded bank statements: ")
         for i, path in enumerate(file_paths):
             file_name = os.path.basename(path)
-            dynamic_print(f"{i + 1}. {file_name}")
+            print(f"{i + 1}. {file_name}")
         print()
         undo_redo(file_paths, combined_data)
         
@@ -417,15 +415,18 @@ def edit_a_transaction(df):
     ID, col, new_value = get_user_input()
     new_value = convert_value(col, new_value)
     request = create_request(ID, col, new_value, df)
+    print("Sending the request to the microservice B: transaction-editor ...")
     write_request_to_file(request, '../transaction-editor/communication.txt')
+    time.sleep(4)
+    print("Receiving response from the microservice B: transaction-editor ...")
     df = process_response(df, '../transaction-editor/communication.txt')
+    df.index = df.index.astype(int)
     display_transactions(df)
 
 
 def delete_a_transaction(df):
     try:
         transaction_id = int(input("Enter the ID of the transaction you want to delete: "))
-        
         # Check if the transaction ID exists in the DataFrame
         if transaction_id not in df.index:
             print(f"Transaction ID {transaction_id} does not exist.")
@@ -447,9 +448,9 @@ def delete_a_transaction(df):
         if confirm == 'Y':
             # Drop the transaction from the DataFrame
             df = df.drop(transaction_id)
-            dynamic_print(f"\nTransaction ID {transaction_id} deleted successfully!!\n")
+            print(f"\nTransaction ID {transaction_id} deleted successfully!!\n")
         else:
-            dynamic_print("\nDeletion cancelled.\n")
+            print("\nDeletion cancelled.\n")
             
         display_transactions(df)
     
@@ -471,24 +472,41 @@ def consolidate_category(df):
         'Data': df.to_dict()
         }
     write_request_to_file(request, '../category-consolidator/communication.txt')
+    print("Sending request to microservice C: category-consolidator...")
+    time.sleep(2)
+    print("Receiving response from the microservice C: category-consolidator...")
     df = process_response(df, "../category-consolidator/communication.txt")
+    df.index = df.index.astype(int)
     display_transactions(df)
 
 
 def request_to_microserviceA(m):
-    
-    with open('./transaction-calculator/commpipe.txt', 'w') as request_file:
+    print("Sending request to microservice A: transaction-calculator...")
+    if m == 1:
+        print("Requesting the Highest Expense...")
+    elif m == 2:
+        print("Requesting the Lowest Expense...")
+    elif m == 3:
+        print("Requesting the Average Expense...")
+    with open('../transaction-calculator/commpipe.txt', 'w') as request_file:
         request_file.write(str(m))
     time.sleep(2)
-    with open('./transaction-calculator/commpipe.txt', 'r') as response_file:
+    print("Receiving response from microservice A: transaction-calculator...")
+    with open('../transaction-calculator/commpipe.txt', 'r') as response_file:
         amount = response_file.readline()
+    if m == 1:
+        print(f"Receiving the Highest Expense: {amount}")
+    elif m == 2:
+        print(f"Receiving the Lowest Expense: {amount}")
+    elif m == 3:
+        print(f"Receiving the Average Expense: {amount}")
     return amount
             
 
 def display_expense(df):
     total_expense = df[df['Amount'] < 0]['Amount'].sum()
     total_expense_str = f"${abs(total_expense):.2f}"
-    df.to_csv('./transaction-calculator/dataframe.txt', index=False)
+    df.to_csv('../transaction-calculator/dataframe.txt', index=False)
     highest_expense = request_to_microserviceA(1)
     time.sleep(10)
     lowest_expense = request_to_microserviceA(2)
@@ -635,7 +653,7 @@ def generate_report(df):
     
     # Save PDF
     c.save()
-    dynamic_print("Report is saved to report.pdf")
+    print("Report is saved to report.pdf")
     display_menu(df)
 
 # Example usage:
